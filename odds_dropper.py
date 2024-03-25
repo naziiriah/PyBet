@@ -11,7 +11,7 @@ class oddsDropper:
         self.index = 0
         self.numberOfTimesAPIIsCalled = 0
     
-    async def call_pinnacle(self):
+    def call_pinnacle(self):
         try:
             self.numberOfTimesAPIIsCalled += 1
             complete_api = f"{self.odds_api}{self.time}{self.endTag}";
@@ -20,14 +20,14 @@ class oddsDropper:
                 data = response.json()['data']
                 filtered_data = [state for state in data if abs(float(state['points'])) % 0.5 != 0.25]
                 self.data  = filtered_data
-        except:
-            print("error hppend")
+        except Exception as e:
+            print("error hppend", e)
         finally: 
             self.data.sort(key=lambda x: (x['lineType'] != 'money_line', x['lineType'] == 'money_line'))
 
             if len(self.data) != 0:
                 self.sort_pinnacle_soccer_matches()  
-                self.time = int(time.time() * 1000)  
+                self.time = int(round(time.time() * 1000))
 
             print(self.data)
 

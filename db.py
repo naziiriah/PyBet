@@ -22,8 +22,7 @@ class database:
         self.cursor.execute(query)
         print("Only one data") 
         output = self.cursor.fetchone() 
-        print(output) 
-        self.db.commit() 
+        return output
         
     def insert(self, data):
         # Corrected Python SQLite code
@@ -37,13 +36,22 @@ class database:
             print(f"An error occurred: {e}")
             
     def update_record(self, data):
-        if data['UPDATE'] == 'GOALLINE':
+        if data['UPDATE'] == 'goalline':
             query = f"UPDATE record SET GOALLINE = TRUE WHERE id = {data['id']}"
             self.cursor.execute(query)
-        elif data['UPDATE'] == 'OUTCOME':
+        elif data['UPDATE'] == 'outcome':
             query = f"UPDATE record SET OUTCOME = TRUE WHERE id = {data['id']}"
             self.cursor.execute(query)
         self.db.commit()
+        
+    def query_all(self):
+        query = f"""SELECT  OUTCOME, GOALLINE, DATE FROM record"""
+        self.cursor.execute(query)
+        output = self.cursor.fetchall()
+        for i,out in enumerate(output):
+            print(out[0]) 
+            
+        print(output) 
 
 
     def close_connection(self):
