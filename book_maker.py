@@ -30,10 +30,22 @@ class bookMaker:
         
     def open_browser(self):
         self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+        # self.driver.add_argument("--headless")
+        # self.driver.add_argument("--disable-dev-shm-usage")
+        # self.driver.add_argument("--no-sandbox")
     
     def open_site(self):
         self.driver.get('https://www.sportybet.com/ng/m/')
         time.sleep(15)
+        
+    def click_layout(self):
+        try:
+            self.driver.find_element(By.CLASS_NAME, "mask").click()
+        except:
+            self.driver.get('https://www.sportybet.com/ng/m/')
+            time.sleep(15)
+            
+        
         
     def login(self):
         self.driver.find_element(By.CLASS_NAME,'m-btn-login').click();
@@ -50,21 +62,19 @@ class bookMaker:
         elements = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_all_elements_located((By.CSS_SELECTOR, '.m-market'))
         )
-        
         for i,element in enumerate(elements):
             if len(self.found_element) == 0:
                 child_element = element.find_element(By.CSS_SELECTOR, '.text')
                 if child_element.text == name:
                     print("found")
                     self.found_element = "found the element"
-                    return element
                 else:
                     if len(self.found_element) == 0:
                         self.scroll_view(name)    
             
         
     def search_match(self):
-        search_phrase = self.get_correct_team_names()
+        search_phrase = self.get_correct_team_names(self.event_from_pinnacle['home'], self.event_from_pinnacle['away'])
         self.driver.find_element(By.CLASS_NAME, "m-icon-search").click()
         time.sleep(15)
         self.driver.find_element(By.CLASS_NAME, "m-input-wap").send_keys(search_phrase)
@@ -229,6 +239,9 @@ class bookMaker:
             self.default()
 
     def place_bet_for_moneyline(self):
+        self.find_element_cont("1X2")
+        self.found_element = ""
+        time.sleep(5)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
@@ -248,15 +261,18 @@ class bookMaker:
                                 self.event_from_pinnacle['points'] == "0"):
                                 self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
                             elif (check_if_draw_win_or_lose == "Home" and
-                                  self.event_from_pinnacle['outcome'] == "home" and
-                                  self.event_from_pinnacle['points'] == ""):
+                                    self.event_from_pinnacle['outcome'] == "home" and
+                                    self.event_from_pinnacle['points'] == ""):
                                 self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
                             elif (check_if_draw_win_or_lose == "Away" and
-                                  self.event_from_pinnacle['outcome'] == "away" and
-                                  self.event_from_pinnacle['points'] == ""):
+                                    self.event_from_pinnacle['outcome'] == "away" and
+                                    self.event_from_pinnacle['points'] == ""):
                                 self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
                                 
     def place_bet_for_normal_total(self):
+        self.find_element_cont("Over/Under")
+        self.found_element = ""
+        time.sleep(5)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
@@ -275,12 +291,15 @@ class bookMaker:
                         elif self.event_from_pinnacle['outcome'] == "over":
                             content_value = content[1].text
                             self.final_check_on_bet(content_value, content[1], "goalline")
-        
+
     def place_bet_for_asian_total(self):
+        self.find_element_cont("Asian Over/Under")
+        self.found_element = ""
+        time.sleep(5)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
-        for element in elements:
+        for i,element in enumerate(elements):
             child_element = element.find_element(By.CSS_SELECTOR, '.text')
             child_element_name = child_element.text
             if child_element_name == "Asian Over/Under":
@@ -297,36 +316,48 @@ class bookMaker:
                             self.final_check_on_bet(content_value, content[1], "goalline")
                                                     
     def place_bet_for_asian_handicap(self):
-        element = self.find_element_cont("Asian Handicap")
-        contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
-        for content_row in contents_row:
-            content = content_row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
-            if self.event_from_pinnacle['outcome'] == "home" and len(content)> 0 and len(content_row) > 0:
-                content_section = content[0].find_elements(By.TAG_NAME, 'em')
-                if content_section:
-                    content_value_holder = content_section[0]
-                    content_label = content_value_holder.text
-                    if content_label == self.event_from_pinnacle['points']:
-                        content_value_holder = content[1]
-                        content_value = content_value_holder.text
-                        self.final_check_on_bet(content_value, content_value_holder, "outcome")
-            elif self.event_from_pinnacle['outcome'] == "away" and len(content)> 0 and len(content_row) > 0:
-                content_section = content[1].find_elements(By.TAG_NAME, 'em')
-                if content_section:
-                    content_value_holder = content_section[0]
-                    content_label = content_value_holder.text
-                    if content_label == self.event_from_pinnacle['points']:
-                        content_value_holder = content[1]
-                        content_value = content_value_holder.text
-                        self.final_check_on_bet(content_value, content_value_holder, "outcome")
+        self.find_element_cont("Asian Handicap")
+        self.found_element = ""
+        time.sleep(5)
+        elements = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
+        )
+        for i,element in enumerate(elements):
+            child_element = element.find_element(By.CSS_SELECTOR, '.text')
+            child_element_name = child_element.text
+            if child_element_name == "Asian Handicap":
+                contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
+                for content_row in contents_row:
+                    content = content_row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
+                    if self.event_from_pinnacle['outcome'] == "home" and len(content)> 0 and len(content_row) > 0:
+                        content_section = content[0].find_elements(By.TAG_NAME, 'em')
+                        if content_section:
+                            content_value_holder = content_section[0]
+                            content_label = content_value_holder.text
+                            if content_label == self.event_from_pinnacle['points']:
+                                content_value_holder = content[1]
+                                content_value = content_value_holder.text
+                                self.final_check_on_bet(content_value, content_value_holder, "outcome")
+                    elif self.event_from_pinnacle['outcome'] == "away" and len(content)> 0 and len(content_row) > 0:
+                        content_section = content[1].find_elements(By.TAG_NAME, 'em')
+                        if content_section:
+                            content_value_holder = content_section[0]
+                            content_label = content_value_holder.text
+                            if content_label == self.event_from_pinnacle['points']:
+                                content_value_holder = content[1]
+                                content_value = content_value_holder.text
+                                self.final_check_on_bet(content_value, content_value_holder, "outcome")
 
     # basketball
     
     def place_bet_for_moneyline_basketball(self):
+        self.find_element_cont("Winner (incl. overtime)")
+        self.found_element = ""
+        time.sleep(3)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
-        for j, element in enumerate(elements):
+        for i,element in enumerate(elements):
             child_element = element.find_element(By.CSS_SELECTOR, '.text')
             child_element_name = child_element.text
             if child_element_name == "Winner (incl. overtime)":
@@ -338,23 +369,26 @@ class bookMaker:
                             check_if_draw_win_or_lose = info_tag[0].text
                             vig_price_from_sportybet = info_tag[1].text
                             if (check_if_draw_win_or_lose == "Home" and
-                                  self.event_from_pinnacle['outcome'] == "home" and
-                                  self.event_from_pinnacle['points'] == ""):
+                                    self.event_from_pinnacle['outcome'] == "home" and
+                                    self.event_from_pinnacle['points'] == ""):
                                 self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
                             elif (check_if_draw_win_or_lose == "Away" and
-                                  self.event_from_pinnacle['outcome'] == "away" and
-                                  self.event_from_pinnacle['points'] == ""):
+                                    self.event_from_pinnacle['outcome'] == "away" and
+                                    self.event_from_pinnacle['points'] == ""):
                                 self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
-       
+
     
     def place_bet_for_basketball_handicap(self):
+        self.find_element_cont("Handicap (incl. overtime)")
+        self.found_element = ""
+        time.sleep(3)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
-        for k,element in enumerate(elements):
-            child_elements = element.find_element(By.CSS_SELECTOR, '.text')
-            child_element_name = child_elements.text
-            if child_element_name == "Asian Handicap" or "Handicap (incl. overtime)":
+        for i,element in enumerate(elements):
+            child_element = element.find_element(By.CSS_SELECTOR, '.text')
+            child_element_name = child_element.text
+            if child_element_name == "Handicap (incl. overtime)":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
                 for content_row in contents_row:
                     content = content_row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
@@ -378,10 +412,13 @@ class bookMaker:
                                 self.final_check_on_bet(content_value, content_value_holder, "outcome")
 
     def place_basketball_bets_total_for_full_match(self):
+        self.find_element_cont("Over/Under (incl. overtime)")
+        self.found_element = ""
+        time.sleep(3)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
-        for k,element in enumerate(elements):
+        for i,element in enumerate(elements):
             child_element = element.find_element(By.CSS_SELECTOR, '.text')
             child_element_name = child_element.text
             if child_element_name == "Over/Under (incl. overtime)":
@@ -389,20 +426,26 @@ class bookMaker:
                 for m,row in enumerate(contents_row):
                     content = row.find_elements(By.TAG_NAME, 'em')
                     content_label = content[0].text
-                    if content_label == self.event_from_pinnacle['points']:
-                        if self.event_from_pinnacle['outcome'] == "under":
+                    if self.event_from_pinnacle['outcome'] == "under":
+                        if float(content_label) - 0.5 == float(self.event_from_pinnacle['points']):
                             content_value = content[2].text
                             self.final_check_on_bet(content_value, content[2], "goalline")
-                        elif self.event_from_pinnacle['outcome'] == "over":
+                    elif self.event_from_pinnacle['outcome'] == "over":
+                        if float(content_label) + 0.5 == float(self.event_from_pinnacle['points']):
                             content_value = content[1].text
                             self.final_check_on_bet(content_value, content[1], "goalline")
+                    else:
+                        print("outcome invalid",self.event_from_pinnacle['outcome'])
                 
         
     def place_basketball_bets_total_for_half_match(self):
+        self.find_element_cont("1st Half - Over/Under")
+        self.found_element = ""
+        time.sleep(3)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
-        for k,element in enumerate(elements):
+        for i,element in enumerate(elements):
             child_element = element.find_element(By.CSS_SELECTOR, '.text')
             child_element_name = child_element.text
             if child_element_name == "1st Half - Over/Under":
@@ -410,17 +453,24 @@ class bookMaker:
                 for j,row in enumerate(contents_row):
                     content = row.find_elements(By.TAG_NAME, 'em')
                     content_label = content[0].text
-                    if content_label == self.event_from_pinnacle['points']:
-                        if self.event_from_pinnacle['outcome'] == "under":
+                    if self.event_from_pinnacle['outcome'] == "under":
+                        if float(content_label) - 0.5 == float(self.event_from_pinnacle['points']):
                             content_value = content[2].text
                             self.final_check_on_bet(content_value, content[2], "goalline")
-                        elif self.event_from_pinnacle['outcome'] == "over":
+                    elif self.event_from_pinnacle['outcome'] == "over":
+                        if float(content_label) + 0.5 == float(self.event_from_pinnacle['points']):
                             content_value = content[1].text
                             self.final_check_on_bet(content_value, content[1], "goalline")
-        
+                    else:
+                        print("outcome invalid",self.event_from_pinnacle['outcome'])
+                        
+
 # tenis
 
     def place_tennis_bets_for_full_total(self):
+        self.find_element_cont("Total Games")
+        self.found_element = ""
+        time.sleep(3)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
@@ -439,12 +489,15 @@ class bookMaker:
                         elif self.event_from_pinnacle['outcome'] == "over":
                             content_value = content[1].text
                             self.final_check_on_bet(content_value, content[1], "goalline")
-    
+
     def place_bet_for_moneyline_tennis(self):
+        self.find_element_cont("Winner")
+        self.found_element = ""
+        time.sleep(3)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
-        for j, element in enumerate(elements):
+        for i,element in enumerate(elements):
             child_element = element.find_element(By.CSS_SELECTOR, '.text')
             child_element_name = child_element.text
             if child_element_name == "Winner":
@@ -456,19 +509,22 @@ class bookMaker:
                             check_if_draw_win_or_lose = info_tag[0].text
                             vig_price_from_sportybet = info_tag[1].text
                             if (check_if_draw_win_or_lose == "Home" and
-                                  self.event_from_pinnacle['outcome'] == "home" and
-                                  self.event_from_pinnacle['points'] == ""):
+                                    self.event_from_pinnacle['outcome'] == "home" and
+                                    self.event_from_pinnacle['points'] == ""):
                                 self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
                             elif (check_if_draw_win_or_lose == "Away" and
-                                  self.event_from_pinnacle['outcome'] == "away" and
-                                  self.event_from_pinnacle['points'] == ""):
+                                    self.event_from_pinnacle['outcome'] == "away" and
+                                    self.event_from_pinnacle['points'] == ""):
                                 self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
-       
+
     def place_bet_for_tennis_handicap(self):
+        self.find_element_cont("Game handicap")
+        self.found_element = ""
+        time.sleep(3)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
-        for k,element in enumerate(elements):
+        for i,element in enumerate(elements):
             child_element = element.find_element(By.CSS_SELECTOR, '.text')
             child_element_name = child_element.text
             if child_element_name == "Game handicap" and self.event_from_pinnacle["periodNumber"] == "0":
@@ -494,10 +550,10 @@ class bookMaker:
                                 content_value = content_value_holder.text
                                 self.final_check_on_bet(content_value, content_value_holder, "outcome")
 
-       
+    
         
     def compare_bet_price(self, value):
-        # Replace with your logic for comparing prices
+        print('comparing prices')
         difference = 0.1
         return value - float(self.event_from_pinnacle['noVigPrice']) >= difference
 
@@ -513,7 +569,14 @@ class bookMaker:
         print("bet plced succesfully")
         
     def to_home(self):
-        self.driver.find_element(By.CLASS_NAME, 'home-icon').click()
+        try:
+            self.driver.find_element(By.CLASS_NAME, 'home-icon').click()
+        except Exception as e:
+            print("tried going to home",e)
+        finally:
+            self.driver.get('https://www.sportybet.com/ng/m/')
+            time.sleep(15)
+            
         
 
     def final_check_on_bet(self, value, event, game_type):
@@ -550,9 +613,10 @@ class bookMaker:
         finally:
             db.close_connection()
 
-    def default():
+    def default(self):
         print("defult")
         
     def close_browser(self):
         self.driver.quit()
+        print("browser closed")
         
