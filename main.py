@@ -42,6 +42,7 @@ def main():
             except Exception as e:
                 print(e)
             finally:
+                sporty_event.searched_event = []
                 if len(odds_event.data) - 1 == i:
                     sporty_event.close_browser()
                 else:
@@ -58,8 +59,10 @@ def start():
         time.sleep(10)
         main()
 
+
 schedule.every(60).seconds.do(start)
 
 while True:
     schedule.run_pending()
     time.sleep(1)
+

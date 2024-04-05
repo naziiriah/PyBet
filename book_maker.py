@@ -4,7 +4,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 from datetime import datetime
 
 import time
@@ -18,7 +17,7 @@ class bookMaker:
     def __init__(self):
         self.vig_price_difference = 0.1
         self.data = []
-        self.sporty_bet_url = os.getenv("SPORTYBET_URL")
+        self.sporty_bet_url = os.environ.get("SPORTYBET_URL")
         self.searched_event = []
         self.eventDate = 0
         self.event_from_pinnacle = {}
@@ -27,12 +26,17 @@ class bookMaker:
         self.longest_phrase_home_team = ""
         self.longest_phrase_away_team = ""
         self.drive = any
+        # self.chrome_options = webdriver.ChromeOptions()
+        # self.chrome_options.binary_location = os.environ.get("CHROME_DRIVER_PTH")
+        # self.chrome_options.add_argument("--headless")
+        # self.chrome_options.add_argument("--disable-dev-shm-usage")
+        # self.chrome_options.add_argument("--no-sandbox")
         
     def open_browser(self):
+        # self.driver = webdriver.Chrome(executble_p = os.environ.get("CHROME_DRIVER_PTH"), chrome_options = self.chrome_options)
         self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
-        # self.driver.add_argument("--headless")
-        # self.driver.add_argument("--disable-dev-shm-usage")
-        # self.driver.add_argument("--no-sandbox")
+        self.driver.implicitly_wait(5)
+        
     
     def open_site(self):
         self.driver.get('https://www.sportybet.com/ng/m/')
@@ -95,12 +99,13 @@ class bookMaker:
                 # Click the element at the specified index
                 elements[index].click()
                 time.sleep(3)  # Wait for 3 seconds
-                print("Selects events")
-        except Exception as e:
-            print(e)
+                print("selects events")
+        except:
+            self.driver.find_element(By.CLASS_NAME, "m-l-left").click()
+        
 
     def scroll_view(self, name):        
-        self.driver.execute_script(f"window.scrollBy(0, 200);")
+        self.driver.execute_script(f"window.scrollBy(0, 100);")
         if len(self.found_element) == 0:
             self.find_element_cont(name)
             
@@ -178,6 +183,7 @@ class bookMaker:
                     'time': times_of_event[i // 2],
                     'date': dates_of_event[i // 2]
                 })
+        print("list of elementss found",len(self.searched_event))
         
 
     def sort_football_bets_base_on_outcome(self):
@@ -211,9 +217,9 @@ class bookMaker:
             self.default()
             
     def sort_total_bets(self):
-        if self.event_from_pinnacle['points'] % 1 == 0:
+        if float(self.event_from_pinnacle['points']) % 1 == 0:
             self.place_bet_for_asian_total()
-        elif self.event_from_pinnacle['points'] % 1 == 0.5:
+        elif float(self.event_from_pinnacle['points']) % 1 == 0.5:
             self.place_bet_for_normal_total()
         else:
             self.default()
@@ -227,13 +233,13 @@ class bookMaker:
             self.default()
 
     def sort_spreads_bet(self):
-        if self.event_from_pinnacle['points'] % 1 == 0.5:
+        if float(self.event_from_pinnacle['points']) % 1 == 0.5:
             self.place_bet_for_asian_handicap()
         else:
             self.default()
 
     def sort_basketball_spreads_bet(self):
-        if self.event_from_pinnacle['points'] % 1 == 0.5:
+        if float(self.event_from_pinnacle['points']) % 1 == 0.5:
             self.place_bet_for_basketball_handicap()
         else:
             self.default()
@@ -250,29 +256,25 @@ class bookMaker:
             child_element_name = child_element.text
             if child_element_name == "1X2":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-cell')
-                for i,row in enumerate(contents_row):
-                    if len(contents_row) > 0:
-                        info_tag = row.find_elements(By.TAG_NAME, 'em')
-                        if len(info_tag) == 2:
-                            check_if_draw_win_or_lose = info_tag[0].text
-                            vig_price_from_sportybet = info_tag[1].text
-                            if (check_if_draw_win_or_lose == "Draw" and
-                                self.event_from_pinnacle['outcome'] == "" and
-                                self.event_from_pinnacle['points'] == "0"):
-                                self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
-                            elif (check_if_draw_win_or_lose == "Home" and
-                                    self.event_from_pinnacle['outcome'] == "home" and
-                                    self.event_from_pinnacle['points'] == ""):
-                                self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
-                            elif (check_if_draw_win_or_lose == "Away" and
-                                    self.event_from_pinnacle['outcome'] == "away" and
-                                    self.event_from_pinnacle['points'] == ""):
-                                self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
+                if (self.event_from_pinnacle['outcome'] == "" and
+                    self.event_from_pinnacle['points'] == "0"):
+                    content = self.convert_text(contents_row[1].text)
+                    if content[0] == 'Draw':
+                        self.final_check_on_bet(content[1], contents_row[1], "outcome")
+                elif (self.event_from_pinnacle['outcome'] == "home" and
+                        self.event_from_pinnacle['points'] == ""):
+                    content = self.convert_text(contents_row[0].text)
+                    if content[0] == 'Home':
+                        self.final_check_on_bet(content[1], contents_row[0], "outcome")
+                elif (self.event_from_pinnacle['outcome'] == "away" and
+                            self.event_from_pinnacle['points'] == ""):
+                    content = self.convert_text(contents_row[2].text)
+                    if content[0] == 'Away':
+                        self.final_check_on_bet(content[1], contents_row[2], "outcome")
                                 
     def place_bet_for_normal_total(self):
         self.find_element_cont("Over/Under")
         self.found_element = ""
-        time.sleep(5)
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
@@ -282,7 +284,7 @@ class bookMaker:
             if child_element_name == "Over/Under":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
                 for j,row in enumerate(contents_row):
-                    content = row.find_elements(By.TAG_NAME, 'em')
+                    content = row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
                     content_label = content[0].text
                     if content_label == self.event_from_pinnacle['points']:
                         if self.event_from_pinnacle['outcome'] == "under":
@@ -304,8 +306,8 @@ class bookMaker:
             child_element_name = child_element.text
             if child_element_name == "Asian Over/Under":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
-                for row in contents_row:
-                    content = row.find_elements(By.TAG_NAME, 'em')
+                for i,row in  enumerate(contents_row):
+                    content = row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
                     content_label = content[0].text
                     if content_label == self.event_from_pinnacle['points']:
                         if self.event_from_pinnacle['outcome'] == "under":
@@ -327,25 +329,33 @@ class bookMaker:
             child_element_name = child_element.text
             if child_element_name == "Asian Handicap":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
-                for content_row in contents_row:
+                for i,content_row in enumerate(contents_row):
                     content = content_row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
-                    if self.event_from_pinnacle['outcome'] == "home" and len(content)> 0 and len(content_row) > 0:
-                        content_section = content[0].find_elements(By.TAG_NAME, 'em')
-                        if content_section:
-                            content_value_holder = content_section[0]
-                            content_label = content_value_holder.text
-                            if content_label == self.event_from_pinnacle['points']:
-                                content_value_holder = content[1]
-                                content_value = content_value_holder.text
+                    if self.event_from_pinnacle['outcome'] == "home" and len(content)> 0:
+                        content_label = self.convert_text(content[0].text)
+                        if "-" not in self.event_from_pinnacle['points']:
+                            newValue= "+"+self.event_from_pinnacle['points']
+                            if content_label[0] == newValue:
+                                content_value_holder = content[0]
+                                content_value = content_label[1]
                                 self.final_check_on_bet(content_value, content_value_holder, "outcome")
-                    elif self.event_from_pinnacle['outcome'] == "away" and len(content)> 0 and len(content_row) > 0:
-                        content_section = content[1].find_elements(By.TAG_NAME, 'em')
-                        if content_section:
-                            content_value_holder = content_section[0]
-                            content_label = content_value_holder.text
+                        else:
+                            if content_label[0] == self.event_from_pinnacle['points']:
+                                content_value_holder = content[0]
+                                content_value = content_label[1]
+                                self.final_check_on_bet(content_value, content_value_holder, "outcome")
+                    elif self.event_from_pinnacle['outcome'] == "away" and len(content)> 0:
+                        content_label = self.convert_text(content[1].text)
+                        if "-" not in self.event_from_pinnacle['points']:
+                            newValue= "+"+self.event_from_pinnacle['points']
+                            if content_label[0] == newValue:
+                                content_value_holder = content[1]
+                                content_value = content_label[1]
+                                self.final_check_on_bet(content_value, content_value_holder, "outcome")
+                        else:
                             if content_label == self.event_from_pinnacle['points']:
                                 content_value_holder = content[1]
-                                content_value = content_value_holder.text
+                                content_value = content_label[1]
                                 self.final_check_on_bet(content_value, content_value_holder, "outcome")
 
     # basketball
@@ -363,20 +373,11 @@ class bookMaker:
             if child_element_name == "Winner (incl. overtime)":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-cell')
                 for k, row in enumerate(contents_row):
-                    if len(contents_row) > 0:
-                        info_tag = row.find_elements(By.TAG_NAME, 'em')
-                        if len(info_tag) == 2:
-                            check_if_draw_win_or_lose = info_tag[0].text
-                            vig_price_from_sportybet = info_tag[1].text
-                            if (check_if_draw_win_or_lose == "Home" and
-                                    self.event_from_pinnacle['outcome'] == "home" and
-                                    self.event_from_pinnacle['points'] == ""):
-                                self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
-                            elif (check_if_draw_win_or_lose == "Away" and
-                                    self.event_from_pinnacle['outcome'] == "away" and
-                                    self.event_from_pinnacle['points'] == ""):
-                                self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
-
+                    content = self.convert_text(contents_row[k].text)
+                    if (self.event_from_pinnacle['outcome'] == "home" and self.event_from_pinnacle['points'] == "" and content[0] == 'Home' ):
+                        self.final_check_on_bet(content[1], row, "outcome")
+                    elif (self.event_from_pinnacle['outcome'] == "away" and self.event_from_pinnacle['points'] == "" and content[0] == 'Away'):
+                        self.final_check_on_bet(content[1], row, "outcome")
     
     def place_bet_for_basketball_handicap(self):
         self.find_element_cont("Handicap (incl. overtime)")
@@ -385,30 +386,39 @@ class bookMaker:
         elements = WebDriverWait(self.driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, '.m-detail-market-default'))
         )
+        print(len(elements))
         for i,element in enumerate(elements):
             child_element = element.find_element(By.CSS_SELECTOR, '.text')
             child_element_name = child_element.text
             if child_element_name == "Handicap (incl. overtime)":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
-                for content_row in contents_row:
+                for i,content_row in enumerate(contents_row):
                     content = content_row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
-                    if self.event_from_pinnacle['outcome'] == "home" and len(content)> 0 and len(content_row) > 0:
-                        content_section = content[0].find_elements(By.TAG_NAME, 'em')
-                        if content_section:
-                            content_value_holder = content_section[0]
-                            content_label = content_value_holder.text
-                            if content_label == self.event_from_pinnacle['points']:
-                                content_value_holder = content[1]
-                                content_value = content_value_holder.text
+                    if self.event_from_pinnacle['outcome'] == "home" and len(content)> 0:
+                        content_label = self.convert_text(content[0].text)
+                        if "-" not in self.event_from_pinnacle['points']:
+                            newValue= "+"+self.event_from_pinnacle['points']
+                            if content_label[0] == newValue:
+                                content_value_holder = content[0]
+                                content_value = content_label[1]
                                 self.final_check_on_bet(content_value, content_value_holder, "outcome")
-                    elif self.event_from_pinnacle['outcome'] == "away" and len(content)> 0 and len(content_row) > 0:
-                        content_section = content[1].find_elements(By.TAG_NAME, 'em')
-                        if content_section:
-                            content_value_holder = content_section[0]
-                            content_label = content_value_holder.text
+                        else:
+                            if content_label[0] == self.event_from_pinnacle['points']:
+                                content_value_holder = content[0]
+                                content_value = content_label[1]
+                                self.final_check_on_bet(content_value, content_value_holder, "outcome")
+                    elif self.event_from_pinnacle['outcome'] == "away" and len(content)> 0:
+                        content_label = self.convert_text(content[1].text)
+                        if "-" not in self.event_from_pinnacle['points']:
+                            newValue= "+"+self.event_from_pinnacle['points']
+                            if content_label[0] == newValue:
+                                content_value_holder = content[1]
+                                content_value = content_label[1]
+                                self.final_check_on_bet(content_value, content_value_holder, "outcome")
+                        else:
                             if content_label == self.event_from_pinnacle['points']:
                                 content_value_holder = content[1]
-                                content_value = content_value_holder.text
+                                content_value = content_label[1]
                                 self.final_check_on_bet(content_value, content_value_holder, "outcome")
 
     def place_basketball_bets_total_for_full_match(self):
@@ -422,21 +432,24 @@ class bookMaker:
             child_element = element.find_element(By.CSS_SELECTOR, '.text')
             child_element_name = child_element.text
             if child_element_name == "Over/Under (incl. overtime)":
-                contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
-                for m,row in enumerate(contents_row):
-                    content = row.find_elements(By.TAG_NAME, 'em')
-                    content_label = content[0].text
-                    if self.event_from_pinnacle['outcome'] == "under":
-                        if float(content_label) - 0.5 == float(self.event_from_pinnacle['points']):
-                            content_value = content[2].text
-                            self.final_check_on_bet(content_value, content[2], "goalline")
-                    elif self.event_from_pinnacle['outcome'] == "over":
-                        if float(content_label) + 0.5 == float(self.event_from_pinnacle['points']):
-                            content_value = content[1].text
-                            self.final_check_on_bet(content_value, content[1], "goalline")
-                    else:
-                        print("outcome invalid",self.event_from_pinnacle['outcome'])
+                contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')                            
+                for n,row in enumerate(contents_row):
+                    content = row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
+                    for m,rows in enumerate(content):
+                        content_label = rows.text
+                        if n > 0 and self.event_from_pinnacle['points'] != '':
+                            if self.event_from_pinnacle['outcome'] == "under":
+                                if float(rows.text) == float(self.event_from_pinnacle['points']) - 0.5:
+                                    content_value = content[2].text                             
+                                    self.final_check_on_bet(content_value, content[2], "goalline")
+                            elif self.event_from_pinnacle['outcome'] == "over":
+                                if float(content_label)== float(self.event_from_pinnacle['points']) + 0.5:
+                                    content_value = content[1].text
+                                    self.final_check_on_bet(content_value, content[1], "goalline")
+                            else:
+                                print("outcome invalid",self.event_from_pinnacle['outcome'])
                 
+                           
         
     def place_basketball_bets_total_for_half_match(self):
         self.find_element_cont("1st Half - Over/Under")
@@ -451,18 +464,20 @@ class bookMaker:
             if child_element_name == "1st Half - Over/Under":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
                 for j,row in enumerate(contents_row):
-                    content = row.find_elements(By.TAG_NAME, 'em')
-                    content_label = content[0].text
-                    if self.event_from_pinnacle['outcome'] == "under":
-                        if float(content_label) - 0.5 == float(self.event_from_pinnacle['points']):
-                            content_value = content[2].text
-                            self.final_check_on_bet(content_value, content[2], "goalline")
-                    elif self.event_from_pinnacle['outcome'] == "over":
-                        if float(content_label) + 0.5 == float(self.event_from_pinnacle['points']):
-                            content_value = content[1].text
-                            self.final_check_on_bet(content_value, content[1], "goalline")
-                    else:
-                        print("outcome invalid",self.event_from_pinnacle['outcome'])
+                    content = row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
+                    for m,rows in enumerate(content):
+                        content_label = rows.text
+                        if j > 0 and self.event_from_pinnacle['points'] != '':
+                            if self.event_from_pinnacle['outcome'] == "under":
+                                if float(content_label) == float(self.event_from_pinnacle['points']) - 0.5:
+                                    content_value = content[2].text
+                                    self.final_check_on_bet(content_value, content[2], "goalline")
+                            elif self.event_from_pinnacle['outcome'] == "over":
+                                if float(content_label) == float(self.event_from_pinnacle['points']) + 0.5:
+                                    content_value = content[1].text
+                                    self.final_check_on_bet(content_value, content[1], "goalline")
+                            else:
+                                print("outcome invalid",self.event_from_pinnacle['outcome'])
                         
 
 # tenis
@@ -480,7 +495,7 @@ class bookMaker:
             if child_element_name == "Total Games":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
                 for j,row in enumerate(contents_row):
-                    content = row.find_elements(By.TAG_NAME, 'em')
+                    content = row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
                     content_label = content[0].text
                     if content_label == self.event_from_pinnacle['points']:
                         if self.event_from_pinnacle['outcome'] == "under":
@@ -503,19 +518,11 @@ class bookMaker:
             if child_element_name == "Winner":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-cell')
                 for k, row in enumerate(contents_row):
-                    if len(contents_row) > 0:
-                        info_tag = row.find_elements(By.TAG_NAME, 'em')
-                        if len(info_tag) == 2:
-                            check_if_draw_win_or_lose = info_tag[0].text
-                            vig_price_from_sportybet = info_tag[1].text
-                            if (check_if_draw_win_or_lose == "Home" and
-                                    self.event_from_pinnacle['outcome'] == "home" and
-                                    self.event_from_pinnacle['points'] == ""):
-                                self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
-                            elif (check_if_draw_win_or_lose == "Away" and
-                                    self.event_from_pinnacle['outcome'] == "away" and
-                                    self.event_from_pinnacle['points'] == ""):
-                                self.final_check_on_bet(vig_price_from_sportybet, row, "outcome")
+                    content = self.convert_text(contents_row[k].text)
+                    if (self.event_from_pinnacle['outcome'] == "home" and self.event_from_pinnacle['points'] == "" and content[0] == 'Home' ):
+                        self.final_check_on_bet(content[1], row, "outcome")
+                    elif (self.event_from_pinnacle['outcome'] == "away" and self.event_from_pinnacle['points'] == "" and content[0] == 'Away'):
+                        self.final_check_on_bet(content[1], row, "outcome")
 
     def place_bet_for_tennis_handicap(self):
         self.find_element_cont("Game handicap")
@@ -529,28 +536,36 @@ class bookMaker:
             child_element_name = child_element.text
             if child_element_name == "Game handicap" and self.event_from_pinnacle["periodNumber"] == "0":
                 contents_row = element.find_elements(By.CSS_SELECTOR, '.m-table-row')
-                for k,content_row in enumerate(contents_row):
+                for i,content_row in enumerate(contents_row):
                     content = content_row.find_elements(By.CSS_SELECTOR, '.m-table-cell')
-                    if self.event_from_pinnacle['outcome'] == "home" and len(content)> 0 and len(content_row) > 0:
-                        content_section = content[0].find_elements(By.TAG_NAME, 'em')
-                        if content_section:
-                            content_value_holder = content_section[0]
-                            content_label = content_value_holder.text
-                            if content_label == self.event_from_pinnacle['points']:
-                                content_value_holder = content[1]
-                                content_value = content_value_holder.text
+                    if self.event_from_pinnacle['outcome'] == "home" and len(content)> 0:
+                        content_label = self.convert_text(content[0].text)
+                        if "-" not in self.event_from_pinnacle['points']:
+                            newValue= "+"+self.event_from_pinnacle['points']
+                            if content_label[0] == newValue:
+                                content_value_holder = content[0]
+                                content_value = content_label[1]
                                 self.final_check_on_bet(content_value, content_value_holder, "outcome")
-                    elif self.event_from_pinnacle['outcome'] == "away" and len(content)> 0 and len(content_row) > 0:
-                        content_section = content[1].find_elements(By.TAG_NAME, 'em')
-                        if content_section:
-                            content_value_holder = content_section[0]
-                            content_label = content_value_holder.text
+                        else:
+                            if content_label[0] == self.event_from_pinnacle['points']:
+                                content_value_holder = content[0]
+                                content_value = content_label[1]
+                                self.final_check_on_bet(content_value, content_value_holder, "outcome")
+                    elif self.event_from_pinnacle['outcome'] == "away" and len(content)> 0:
+                        content_label = self.convert_text(content[1].text)
+                        if "-" not in self.event_from_pinnacle['points']:
+                            newValue= "+"+self.event_from_pinnacle['points']
+                            if content_label[0] == newValue:
+                                content_value_holder = content[1]
+                                content_value = content_label[1]
+                                self.final_check_on_bet(content_value, content_value_holder, "outcome")
+                        else:
                             if content_label == self.event_from_pinnacle['points']:
                                 content_value_holder = content[1]
-                                content_value = content_value_holder.text
+                                content_value = content_label[1]
                                 self.final_check_on_bet(content_value, content_value_holder, "outcome")
 
-    
+        
         
     def compare_bet_price(self, value):
         print('comparing prices')
@@ -563,19 +578,19 @@ class bookMaker:
     def activate_bet(self):
         self.driver.find_element(By.CLASS_NAME, "m-pay-text").click()
         time.sleep(2)
-        self.driver.find_element(By.CLASS_NAME, "af-button").click()
+        self.driver.find_element(By.CLASS_NAME, "flexibet-confirm").click()
         time.sleep(3)
-        self.driver.find_element(By.CLASS_NAME, "af-button").click()
+        self.driver.find_element(By.CLASS_NAME, "btn-ok").click()
         print("bet plced succesfully")
         
     def to_home(self):
-        try:
-            self.driver.find_element(By.CLASS_NAME, 'home-icon').click()
-        except Exception as e:
-            print("tried going to home",e)
-        finally:
-            self.driver.get('https://www.sportybet.com/ng/m/')
-            time.sleep(15)
+        self.driver.get('https://www.sportybet.com/ng/m/')
+        time.sleep(15)
+        
+    def convert_text(first, second_text):
+        string_array =  re.sub(r'\n', ' ',second_text).split()
+        return string_array
+
             
         
 
@@ -585,7 +600,7 @@ class bookMaker:
         try:
             if self.compare_bet_price(float(value)):
                 print("Vig price valid")
-                ID = f"{self.event_from_pinnacle['home']}-{self.event_from_pinnacle['away']}-{self.event_from_pinnacle['starts']}"
+                ID = self.event_from_pinnacle['eventId']
                 row = db.get_entry(ID)
                 print("Got DB records")
                 if row:
@@ -602,12 +617,14 @@ class bookMaker:
                     event.click()
                     self.wait(2)
                     self.activate_bet()
-                    db.insert(ID, {
-                        "outcome": True if game_type == "outcome" else False,
-                        "gameline": True if game_type == "goalline" else False
-                    }, time.time())
-                    self.wait(2)
-                    db.insert(ID, {"update": game_type}, time.time())
+                    db.insert({
+                        "id": ID,
+                        "OUTCOME": True if game_type == "outcome" else False,
+                        "GOALLINE": True if game_type == "goalline" else False,
+                        "DATE": time.time()
+                    })
+                    # self.wait(2)
+                    # db.insert(ID, {"update": game_type}, time.time())
         except Exception as e:
             print(e)
         finally:

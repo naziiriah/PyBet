@@ -14,12 +14,20 @@ class oddsDropper:
     def call_pinnacle(self):
         try:
             self.numberOfTimesAPIIsCalled += 1
-            complete_api = f"{self.odds_api}{self.time}{self.endTag}";
+            complete_api = f"{self.odds_api}{self.time}{self.endTag}"
             response = requests.get(complete_api)
             if(response.status_code == 200):
                 data = response.json()['data']
-                filtered_data = [state for state in data if abs(float(state['points'])) % 0.5 != 0.25]
-                self.data  = filtered_data
+                filtered_stte = []
+                for i, state in enumerate(data):
+                   if state['points']  == "" or' ':
+                       filtered_stte.append(state)
+                   else:
+                         if ".25" or ".75" not in state['points']:
+                            filtered_stte.append(state)
+                
+                self.data = filtered_stte                            
+                       
         except Exception as e:
             print("error hppend", e)
         finally: 
@@ -34,7 +42,6 @@ class oddsDropper:
 
     def sort_pinnacle_soccer_matches(self):
         new_data = self.data
-        self.data = [state for state in self.data if abs(float(state['points'])) % 0.5 != 0.25]
         self.data = [state for state in self.data if state['nickname'] != 'Soccer']
         for state in new_data:
             if state['nickname'] == 'Soccer' and '(Corners)' not in state['home']:

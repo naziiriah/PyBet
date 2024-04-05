@@ -13,9 +13,7 @@ class database:
             self.cursor.execute(table)
             print("table created")
         except:
-            print("error happened")
-        finally:
-            print("completed")
+            print("error happened creating table")
             
     def get_entry(self, __primary_key__):
         query = f"""SELECT  OUTCOME, GOALLINE, DATE FROM record WHERE id = {__primary_key__}"""
